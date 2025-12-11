@@ -1,0 +1,77 @@
+data = {
+    'Province': ['NF', 'NF', 'NF', 'NF', 'NF', 'PE', 'PE', 'PE', 'PE', 'PE', 'NS', 'NS', 'NS', 'NS', 'NS', 'NB', 'NB', 'NB', 'NB', 'NB', 'QC', 'QC', 'QC', 'QC', 'QC', 'ON', 'ON', 'ON', 'ON', 'ON', 'MB', 'MB', 'MB', 'MB', 'MB', 'SK', 'SK', 'SK', 'SK', 'SK', 'AB', 'AB', 'AB', 'AB', 'AB', 'BC', 'BC', 'BC', 'BC', 'BC'],
+    'Time_frame': ['2019-2020', '2020-2021', '2021-2022', '2022-2023', '2023-2024', '2019-2020', '2020-2021', '2021-2022', '2022-2023', '2023-2024', '2019-2020', '2020-2021', '2021-2022', '2022-2022', '2023-2024', '2019-2020', '2020-2021', '2021-2022', '2022-2023', '2023-2024', '2019-2020', '2020-2021', '2021-2022', '2022-2023', '2023-2024', '2019-2020', '2020-2021', '2021-2022', '2022-2023', '2023-2024', '2019-2020', '2020-2021', '2021-2022', '2022-2023', '2023-2024', '2019-2020', '2020-2021', '2021-2022', '2022-2023', '2023-2024', '2019-2020', '2020-2021', '2021-2022', '2022-2023', '2023-2024', '2019-2020', '2020-2021', '2021-2022', '2022-2023', '2023-2024'],
+    'Hab_yr': [316, 4178, 324, 23886, 21913, 15.3, 1388, 0.1, 0, 8, 154.5, 709, 197, 3389, 25093, 227.7, 1388, 427, 176, 854, 9604, 59748, 49985, 29638, 439888, 269631.5, 15480, 793326, 2561, 441474, 6415.3, 49527, 1266777, 165078, 189782, 47737.7, 42160, 956084, 244275, 1850829, 883414, 2275, 54060, 137310, 1951299, 20986, 14446, 869255, 135032, 2840754], # Hectares Burned (X)
+    'Days_yr': [78682, 68948, 74328, 80253, 76995, 35846, 24770, 29935, 25272, 27793, 167425, 186610, 161328, 182863, 196269, 178736, 112920, 167402, 176083, 205820, 1431206, 1243768, 1276876, 1386087, 1434667, 2176841, 1968996, 2196992, 2183266, 2056881, 269715, 235708, 239162, 203383, 209606, 124487, 178988, 142254, 175702, 177031, 781700, 698734, 680499, 752646, 738241, 663013, 596338, 647149, 682471, 726514], # Days Stayed (M)
+    'OD_yr': [17, 25, 25, 29, 37, 5, 8, 12, 6, 9, 56, 49, 40, 62, 73, 35, 35, 45, 76, 98, 213, 322, 296, 315, 405, 1605, 2518, 2961, 2531, 2639, 62, 233, 286, 291, 382, 115, 250, 327, 297, 347, 262, 1192, 1623, 1523, 1867, 1030, 1801, 2330, 2417, 2624] # Opioid Deaths (Y)
+}
+
+df = pd.DataFrame(data)
+
+# Convert all variables to numeric
+df['Hab_yr'] = pd.to_numeric(df['Hab_yr'], errors='coerce')
+df['Days_yr'] = pd.to_numeric(df['Days_yr'], errors='coerce')
+df['OD_yr'] = pd.to_numeric(df['OD_yr'], errors='coerce')
+df = df.dropna()
+
+# Standardize variables for regression analysis (Z-score normalization)
+df['X'] = (df['Hab_yr'] - df['Hab_yr'].mean()) / df['Hab_yr'].std()
+df['M'] = (df['Days_yr'] - df['Days_yr'].mean()) / df['Days_yr'].std()
+df['Y'] = (df['OD_yr'] - df['OD_yr'].mean()) / df['OD_yr'].std()
+
+# --- Bootstrapping Procedure (1,000 Resamples) ---
+np.random.seed(42) # Set seed for reproducibility
+B = 1000  # Number of bootstrap samples
+indirect_effects = []
+
+for i in range(B):
+    # 1. Resample the data (with replacement)
+    sample_df = df.sample(n=len(df), replace=True)
+
+    # 2. Run Path A: M ~ X
+    try:
+        model_a = smf.ols('M ~ X', data=sample_df).fit()
+        a = model_a.params['X']
+    except Exception:
+        # Skip if regression fails 
+        continue
+
+    # 3. Run Path B and C': Y ~ X + M
+    try:
+        model_bc = smf.ols('Y ~ X + M', data=sample_df).fit()
+        b = model_bc.params['M']
+    except Exception:
+        # Skip if regression fails
+        continue
+
+    # 4. Calculate Indirect Effect: a * b
+    indirect_effects.append(a * b)
+
+# Calculate the 95% Confidence Interval (CI) from the bootstrap distribution
+indirect_effects = np.array(indirect_effects)
+# Uses the percentile method for the 95% CI
+lower_bound = np.percentile(indirect_effects, 2.5)
+upper_bound = np.percentile(indirect_effects, 97.5)
+
+# --- Final Non-Bootstrapped Models for Point Estimates ---
+# Path A
+model_a_final = smf.ols('M ~ X', data=df).fit()
+a_point = model_a_final.params['X']
+
+# Path B and C'
+model_bc_final = smf.ols('Y ~ X + M', data=df).fit()
+b_point = model_bc_final.params['M']
+direct_effect_c_prime = model_bc_final.params['X']
+
+# Path C (Total Effect)
+model_c_final = smf.ols('Y ~ X', data=df).fit()
+total_effect_c = model_c_final.params['X']
+
+# Calculate the point estimate for the indirect effect
+indirect_effect_point = a_point * b_point
+
+print(f"Indirect Effect (a*b): {indirect_effect_point:.3f}")
+print(f"95% CI Lower Bound: {lower_bound:.3f}")
+print(f"95% CI Upper Bound: {upper_bound:.3f}")
+print(f"Total Effect (c): {total_effect_c:.3f}")
+print(f"Direct Effect (c'): {direct_effect_c_prime:.3f}")

@@ -88,7 +88,6 @@ print(f"Total Effect (c): {total_effect_c:.4f}")
 print(f"Direct Effect (c'): {direct_effect_c_prime:.4f}")
 
 #RESULTS:
-#Bootstrap samples:20,000
 #Indirect Effect (a*b): 0.0409
 #-of the estimated effect of .2980, .0409 of that change is specifically explained by X→M→Y
 #95% CI Lower Bound: -0.0000

@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import statsmodels.formula.api as smf
+
 data = {
     'Province': ['NF', 'NF', 'NF', 'NF', 'NF', 'PE', 'PE', 'PE', 'PE', 'PE', 'NS', 'NS', 'NS', 'NS', 'NS', 'NB', 'NB', 'NB', 'NB', 'NB', 'QC', 'QC', 'QC', 'QC', 'QC', 'ON', 'ON', 'ON', 'ON', 'ON', 'MB', 'MB', 'MB', 'MB', 'MB', 'SK', 'SK', 'SK', 'SK', 'SK', 'AB', 'AB', 'AB', 'AB', 'AB', 'BC', 'BC', 'BC', 'BC', 'BC'],
     'Time_frame': ['2019-2020', '2020-2021', '2021-2022', '2022-2023', '2023-2024', '2019-2020', '2020-2021', '2021-2022', '2022-2023', '2023-2024', '2019-2020', '2020-2021', '2021-2022', '2022-2023', '2023-2024', '2019-2020', '2020-2021', '2021-2022', '2022-2023', '2023-2024', '2019-2020', '2020-2021', '2021-2022', '2022-2023', '2023-2024', '2019-2020', '2020-2021', '2021-2022', '2022-2023', '2023-2024', '2019-2020', '2020-2021', '2021-2022', '2022-2023', '2023-2024', '2019-2020', '2020-2021', '2021-2022', '2022-2023', '2023-2024', '2019-2020', '2020-2021', '2021-2022', '2022-2023', '2023-2024', '2019-2020', '2020-2021', '2021-2022', '2022-2023', '2023-2024'],
@@ -11,6 +12,7 @@ data = {
     'OD_yr': [17, 25, 25, 29, 37, 5, 8, 12, 6, 9, 56, 49, 40, 62, 73, 35, 35, 45, 76, 98, 213, 322, 296, 315, 405, 1605, 2518, 2961, 2531, 2639, 62, 233, 286, 291, 382, 115, 250, 327, 297, 347, 1030, 1801, 2330, 2417, 2624, 262, 1192, 1623, 1523, 1867] # Opioid Deaths (Y)
 }
 df = pd.DataFrame(data)
+
 # Convert all variables to numeric and sort for proper lagging
 df['Hab_yr'] = pd.to_numeric(df['Hab_yr'], errors='coerce')
 df['Days_yr'] = pd.to_numeric(df['Days_yr'], errors='coerce')
@@ -45,6 +47,8 @@ for i in range(B):
     # Run Path A: M ~ X
     try:
         model_a = smf.ols('M ~ X', data=sample_df).fit()
+#OLS regression finds the line of best fit for the data through adjusting slope and intercept
+#Justified using the Guass-Markov theorem, OLS provides the Best Linear Unbiased Estimators (BLUE) for coefficients in linear regression models
         a = model_a.params['X']
     except Exception:
         continue
@@ -85,6 +89,8 @@ print(f"Direct Effect (c'): {direct_effect_c_prime:.4f}")
 #-of the estimated effect of .2980, .0409 of that change is specifically explained by X→M→Y
 #95% CI Lower Bound: -0.0000
 #95% CI Upper Bound: 0.1183
+
+#RESULTS:
 #-CI boundaries are close to zero, but with number of iterations effect is real but likely weak
 #Total Effect (c): 0.2980
 #-for every 1-unit increase in forest fire rates there is a 0.2980-unit increase in opioid-related deaths

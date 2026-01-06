@@ -1,7 +1,9 @@
+#IMPORTS
 import pandas as pd
 import numpy as np
 import statsmodels.formula.api as smf
 
+#DATA
 data = {
     'Province': ['NF', 'NF', 'NF', 'NF', 'NF', 'PE', 'PE', 'PE', 'PE', 'PE', 'NS', 'NS', 'NS', 'NS', 'NS', 'NB', 'NB', 'NB', 'NB', 'NB', 'QC', 'QC', 'QC', 'QC', 'QC', 'ON', 'ON', 'ON', 'ON', 'ON', 'MB', 'MB', 'MB', 'MB', 'MB', 'SK', 'SK', 'SK', 'SK', 'SK', 'AB', 'AB', 'AB', 'AB', 'AB', 'BC', 'BC', 'BC', 'BC', 'BC'],
     'Time_frame': ['2019-2020', '2020-2021', '2021-2022', '2022-2023', '2023-2024', '2019-2020', '2020-2021', '2021-2022', '2022-2023', '2023-2024', '2019-2020', '2020-2021', '2021-2022', '2022-2023', '2023-2024', '2019-2020', '2020-2021', '2021-2022', '2022-2023', '2023-2024', '2019-2020', '2020-2021', '2021-2022', '2022-2023', '2023-2024', '2019-2020', '2020-2021', '2021-2022', '2022-2023', '2023-2024', '2019-2020', '2020-2021', '2021-2022', '2022-2023', '2023-2024', '2019-2020', '2020-2021', '2021-2022', '2022-2023', '2023-2024', '2019-2020', '2020-2021', '2021-2022', '2022-2023', '2023-2024', '2019-2020', '2020-2021', '2021-2022', '2022-2023', '2023-2024'],
@@ -13,6 +15,7 @@ data = {
 }
 df = pd.DataFrame(data)
 
+#CALCULATIONS
 # Convert all variables to numeric and sort for proper lagging
 df['Hab_yr'] = pd.to_numeric(df['Hab_yr'], errors='coerce')
 df['Days_yr'] = pd.to_numeric(df['Days_yr'], errors='coerce')
@@ -84,13 +87,12 @@ print(f"95% CI Upper Bound: {upper_bound:.4f}")
 print(f"Total Effect (c): {total_effect_c:.4f}")
 print(f"Direct Effect (c'): {direct_effect_c_prime:.4f}")
 
+#RESULTS:
 #Bootstrap samples:20,000
 #Indirect Effect (a*b): 0.0409
 #-of the estimated effect of .2980, .0409 of that change is specifically explained by X→M→Y
 #95% CI Lower Bound: -0.0000
 #95% CI Upper Bound: 0.1183
-
-#RESULTS:
 #-CI boundaries are close to zero, but with number of iterations effect is real but likely weak
 #Total Effect (c): 0.2980
 #-for every 1-unit increase in forest fire rates there is a 0.2980-unit increase in opioid-related deaths

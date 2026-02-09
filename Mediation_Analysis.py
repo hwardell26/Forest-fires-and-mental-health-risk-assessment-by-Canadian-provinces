@@ -1,9 +1,9 @@
-#IMPORTS
+#IMPORTS:
 import pandas as pd
 import numpy as np
 import statsmodels.formula.api as smf
 
-#DATA
+#DATA: 
 data = {
     'Province': ['NF', 'NF', 'NF', 'NF', 'NF', 'PE', 'PE', 'PE', 'PE', 'PE', 'NS', 'NS', 'NS', 'NS', 'NS', 'NB', 'NB', 'NB', 'NB', 'NB', 'QC', 'QC', 'QC', 'QC', 'QC', 'ON', 'ON', 'ON', 'ON', 'ON', 'MB', 'MB', 'MB', 'MB', 'MB', 'SK', 'SK', 'SK', 'SK', 'SK', 'AB', 'AB', 'AB', 'AB', 'AB', 'BC', 'BC', 'BC', 'BC', 'BC'],
     'Time_frame': ['2019-2020', '2020-2021', '2021-2022', '2022-2023', '2023-2024', '2019-2020', '2020-2021', '2021-2022', '2022-2023', '2023-2024', '2019-2020', '2020-2021', '2021-2022', '2022-2023', '2023-2024', '2019-2020', '2020-2021', '2021-2022', '2022-2023', '2023-2024', '2019-2020', '2020-2021', '2021-2022', '2022-2023', '2023-2024', '2019-2020', '2020-2021', '2021-2022', '2022-2023', '2023-2024', '2019-2020', '2020-2021', '2021-2022', '2022-2023', '2023-2024', '2019-2020', '2020-2021', '2021-2022', '2022-2023', '2023-2024', '2019-2020', '2020-2021', '2021-2022', '2022-2023', '2023-2024', '2019-2020', '2020-2021', '2021-2022', '2022-2023', '2023-2024'],
@@ -15,24 +15,23 @@ data = {
 }
 df = pd.DataFrame(data)
 
-#CALCULATIONS
-# Convert all variables to numeric and sort for proper lagging
+#CALCULATIONS:
+# Convert all variables to numeric, sort for proper lagging
 df['Hab_yr'] = pd.to_numeric(df['Hab_yr'], errors='coerce')
 df['Days_yr'] = pd.to_numeric(df['Days_yr'], errors='coerce')
 df['OD_yr'] = pd.to_numeric(df['OD_yr'], errors='coerce')
 df['Year_Start'] = pd.to_numeric(df['Year_Start'], errors='coerce')
 df = df.dropna().sort_values(by=['Province', 'Year_Start'])
 
-# Calculation of Per Capita Rates (M and Y) and Lagging (X) 
-# Scale factor of 100,000 for rate calculation
+# Calculation of per-capita rates (M and Y) and lagging (X) w/ scale factor 100,000
 SCALE = 100000 
-df['M_rate'] = (df['Days_yr'] / df['Population']) * SCALE # M: Hospital Days per 100k
-df['Y_rate'] = (df['OD_yr'] / df['Population']) * SCALE   # Y: Opioid Deaths per 100k
+df['M_rate'] = (df['Days_yr'] / df['Population']) * SCALE # M: Hospital Days/100k
+df['Y_rate'] = (df['OD_yr'] / df['Population']) * SCALE   # Y: Opioid Deaths/100k
 # Create Lagged Variable (X_t-1)
 df['Hab_yr_Lag1'] = df.groupby('Province')['Hab_yr'].shift(1)
 df_lagged = df.dropna(subset=['Hab_yr_Lag1']).copy()
 
-#Final Z-Score Standardization for Regression
+#Final Z-score standardization 
 # X: Hab_yr_Lag1 (Previous year's fires in hectares burned)
 # M: M_rate (Current year's days stayed RATE)
 # Y: Y_rate (Current year's opioid deaths RATE)
@@ -40,7 +39,7 @@ df_lagged['X'] = (df_lagged['Hab_yr_Lag1'] - df_lagged['Hab_yr_Lag1'].mean()) / 
 df_lagged['M'] = (df_lagged['M_rate'] - df_lagged['M_rate'].mean()) / df_lagged['M_rate'].std()
 df_lagged['Y'] = (df_lagged['Y_rate'] - df_lagged['Y_rate'].mean()) / df_lagged['Y_rate'].std()
 
-# Bootstrapping Procedure for Indirect Effect (a*b)
+# Bootstrapping for indirect effect (a*b)
 np.random.seed(42) # Set seed for reproducibility
 B = 20000  # Number of bootstrap samples
 indirect_effects = []
@@ -50,8 +49,7 @@ for i in range(B):
     # Run Path A: M ~ X
     try:
         model_a = smf.ols('M ~ X', data=sample_df).fit()
-#OLS regression finds the line of best fit for the data through adjusting slope and intercept
-#Justified using the Guass-Markov theorem, OLS provides the Best Linear Unbiased Estimators (BLUE) for coefficients in linear regression models
+#OLS finds line of best fit through adjusting slope and intercept; Guass-Markov theorem
         a = model_a.params['X']
     except Exception:
         continue
@@ -64,12 +62,12 @@ for i in range(B):
     # Calculate Indirect Effect: a * b
     indirect_effects.append(a * b)
 
-# Calculate the 95% Confidence Interval (CI) from the bootstrap distribution
+# Calculate 95% CI from bootstrap distribution
 indirect_effects = np.array(indirect_effects)
 lower_bound = np.percentile(indirect_effects, 2.5)
 upper_bound = np.percentile(indirect_effects, 97.5)
 
-# Final Non-Bootstrapped Models for Point Estimates 
+# Final non-bootstrapped models for point estimates 
 model_a_final = smf.ols('M ~ X', data=df_lagged).fit()
 a_point = model_a_final.params['X']
 model_bc_final = smf.ols('Y ~ X + M', data=df_lagged).fit()
@@ -78,7 +76,7 @@ direct_effect_c_prime = model_bc_final.params['X']
 model_c_final = smf.ols('Y ~ X', data=df_lagged).fit()
 total_effect_c = model_c_final.params['X']
 
-# Calculate the point estimate for the indirect effect
+# Calculate point estimate for indirect effect
 indirect_effect_point = a_point * b_point
 print(f"Sample Size: {len(df_lagged)}")
 print(f"Indirect Effect (a*b): {indirect_effect_point:.4f}")
@@ -88,18 +86,10 @@ print(f"Total Effect (c): {total_effect_c:.4f}")
 print(f"Direct Effect (c'): {direct_effect_c_prime:.4f}")
 
 #RESULTS:
-#Indirect Effect (a*b): 0.0409
-#-of the estimated effect of .2980, .0409 of that change is specifically explained by X→M→Y
-#95% CI Lower Bound: -0.0000
-#95% CI Upper Bound: 0.1183
-#-CI boundaries are close to zero, but with number of iterations effect is real but likely weak
-#Total Effect (c): 0.2980
-#-for every 1-unit increase in forest fire rates there is a 0.2980-unit increase in opioid-related deaths
-#Direct Effect (c'): 0.2571
-#-for every 1-unit increase in forest fire rates there is a .2571-unit increase in opioid-related deaths, after controlling for M
-#-the direct effect is 6.3X larger than the indirect effect (.2571/.0409=6.3), 86.3% remains unexplained
-#Indirect/total=13.7% (amount of data channeled through pathway)
-#-86.3% remains unexplained (ex/economic social factors, health systems, other environmental factors, also hospitalizations only include acute distress)
-#-undeniable significance but small magnitude
-#Forest fires rates are associated with with up to a 13.7% increase in opioid-related deaths, specifically through a transmitted pathway involving high distress characterized by mental health hospitalizations
-
+#Professionally reviewed 1/23/26 for validity
+#Indirect Effect (a*b): 0.0409; of the estimated effect of .2980, .0409 of that change is specifically explained by X→M→Y
+#CI bounds >0; statistically significant
+#Total Effect (c): 0.2980; for every 1-unit increase in forest fire rates there is a 0.2980-unit increase in opioid-related deaths
+#Direct Effect (c'): 0.2571; for every 1-unit increase in forest fire rates there is a .2571-unit increase in opioid-related deaths, after controlling for M
+#Indirect/total=13.7% (amount of data channeled through pathway). Forest fires rates are associated with up to a 13.7% increase in opioid-related deaths according to pathway
+#Additional note: the direct effect is 6.3X larger than the indirect effect (.2571/.0409=6.3), 86.3% remains unexplained

@@ -1,3 +1,6 @@
+Investigating Potential Correlations Between 1-Year Lagged Forest Fire Rates and
+Opioid Mortality Rates: A Mediation Analysis on Canadian Interprovincial Data (2019-2024)
+
 Professionally reviewed 1/23/26 for validity
 
 Abstract

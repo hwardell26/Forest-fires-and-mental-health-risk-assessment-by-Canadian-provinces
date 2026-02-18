@@ -84,12 +84,3 @@ print(f"95% CI Lower Bound: {lower_bound:.4f}")
 print(f"95% CI Upper Bound: {upper_bound:.4f}")
 print(f"Total Effect (c): {total_effect_c:.4f}")
 print(f"Direct Effect (c'): {direct_effect_c_prime:.4f}")
-
-#RESULTS:
-#Professionally reviewed 1/23/26 for validity
-#Indirect Effect (a*b): 0.0409; of the estimated effect of .2980, .0409 of that change is specifically explained by X→M→Y
-#CI bounds >0; statistically significant
-#Total Effect (c): 0.2980; for every 1-unit increase in forest fire rates there is a 0.2980-unit increase in opioid-related deaths
-#Direct Effect (c'): 0.2571; for every 1-unit increase in forest fire rates there is a .2571-unit increase in opioid-related deaths, after controlling for M
-#Indirect/total=13.7% (amount of data channeled through pathway). Forest fires rates are associated with up to a 13.7% increase in opioid-related deaths according to pathway
-#Additional note: the direct effect is 6.3X larger than the indirect effect (.2571/.0409=6.3), 86.3% remains unexplained
